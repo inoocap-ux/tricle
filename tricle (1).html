@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tricle</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+</style>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --fire:#FF4500;--fire2:#FF6B1A;--fire3:#FFE566;--fireBg:#fff5f0;--fireBorder:#FF6B1A;
+  --water:#0077CC;--water2:#0099EE;--water3:#CCF0FF;--waterBg:#f0f8ff;--waterBorder:#0099EE;
+  --grass:#228B22;--grass2:#339933;--grass3:#CCFF88;--grassBg:#f0fff0;--grassBorder:#44AA44;
+  --dark:#ffffff;--dark2:#f7f7f9;--dark3:#f0f0f4;--dark4:#e8e8ee;
+  --gold:#b8860b;--gold2:#996600;
+  --text:#1a1a2e;--text2:#444466;--text3:#888899;
+  --radius:12px;--radius-lg:18px;
+}
+body{
+  font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  background:#f0f0f5;
+  color:var(--text);
+  min-height:100vh;
+  display:block;
+  padding:20px 12px 60px;
+  display:flex;align-items:flex-start;justify-content:center;
+}
+#app{width:100%;max-width:540px;min-height:100vh;}
+
+/* TITLE */
+.title-screen{text-align:center;padding:40px 0 20px;}
+.game-title{
+  font-family:'Cinzel',serif;
+  font-size:28px;font-weight:900;
+  background:linear-gradient(135deg,#FF4500,#b8860b,#228B22,#0077CC);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1.2;margin-bottom:6px;letter-spacing:1px;
+}
+.game-sub{font-size:12px;color:var(--text3);letter-spacing:3px;text-transform:uppercase;margin-bottom:32px;}
+
+/* SCREENS */
+.screen{display:none}.screen.active{display:block}
+
+/* PANEL */
+.panel{background:#fff;border:1px solid #e0e0ec;border-radius:var(--radius-lg);padding:18px;margin-bottom:14px;}
+.panel-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
+
+/* STATUS BAR */
+.status-bar{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;margin-bottom:14px;}
+.stat{background:#fff;border:1px solid #e0e0ec;border-radius:var(--radius);padding:10px 14px;}
+.stat label{font-size:10px;color:var(--text3);display:block;margin-bottom:2px;letter-spacing:.05em;text-transform:uppercase;}
+.stat .val{font-size:22px;font-weight:700;color:var(--gold2);}
+.stat.right{text-align:right;}
+.vs-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.vs-box .lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.vs-box .rnd{font-size:20px;font-weight:700;color:var(--text);}
+
+/* FOLD COUNTER */
+.fold-bar{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e0e0ec;border-radius:var(--radius);padding:8px 14px;margin-bottom:14px;font-size:11px;color:var(--text3);}
+.fold-pips{display:flex;gap:5px;}
+.pip{width:9px;height:9px;border-radius:50%;background:var(--fire);}
+.pip.used{background:#ddd;}
+.fold-sep{width:1px;height:14px;background:#ddd;}
+
+/* SET SELECTION */
+.set-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.set-opt{
+  background:#f7f7f9;border:1.5px solid #e0e0ec;border-radius:var(--radius-lg);
+  padding:14px 8px;text-align:center;cursor:pointer;transition:all .18s;
+}
+.set-opt:hover{border-color:#bbb;background:#fff;}
+.set-opt.selected.fire{border-color:var(--fireBorder);background:var(--fireBg);}
+.set-opt.selected.water{border-color:var(--waterBorder);background:var(--waterBg);}
+.set-opt.selected.grass{border-color:var(--grassBorder);background:var(--grassBg);}
+.set-opt h3{font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:.05em;}
+.set-opt .comp{font-size:10px;color:var(--text3);margin-top:6px;}
+
+/* SVG CARD MINI */
+.card-svg-wrap{display:flex;justify-content:center;margin-bottom:4px;}
+
+/* HAND */
+.hand-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.hcard{
+  width:62px;height:90px;border-radius:10px;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+  border:2px solid #e0e0ec;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.hcard:hover{transform:translateY(-6px);}
+.hcard.sel{transform:translateY(-10px);}
+.hcard.sel.fire{border-color:var(--fireBorder);box-shadow:0 4px 16px rgba(255,100,0,.3);}
+.hcard.sel.water{border-color:var(--waterBorder);box-shadow:0 4px 16px rgba(0,153,238,.3);}
+.hcard.sel.grass{border-color:var(--grassBorder);box-shadow:0 4px 16px rgba(68,170,68,.3);}
+.hcard.used{opacity:.2;cursor:default;pointer-events:none;transform:none;}
+.hcard svg{width:100%;height:100%;}
+.ai-hcard{
+  width:62px;height:90px;border-radius:10px;
+  background:#f0f0f4;border:1.5px solid #e0e0ec;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+}
+.ai-hcard.used{opacity:.2;}
+
+/* BET AREA */
+.bet-area{background:#f7f7f9;border:1px solid #e0e0ec;border-radius:var(--radius-lg);padding:16px;margin-bottom:14px;}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.chip{
+  background:#fff;border:1px solid #ccc;border-radius:20px;
+  padding:5px 16px;font-size:13px;font-weight:700;cursor:pointer;color:var(--text2);
+  transition:all .12s;font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+.chip:hover{border-color:#999;color:var(--text);}
+.chip.on{background:var(--gold2);color:#fff;border-color:var(--gold2);}
+.bet-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.bet-row label{font-size:12px;color:var(--text3);}
+.bet-input{
+  width:90px;padding:7px 10px;
+  background:#fff;border:1px solid #ccc;border-radius:8px;
+  font-size:14px;font-weight:700;color:var(--gold2);
+  font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+.ai-resp{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* RESULT BOX */
+.result-box{
+  background:#f7f7f9;border:1px solid #e0e0ec;border-radius:var(--radius-lg);
+  padding:20px;margin-bottom:14px;text-align:center;
+}
+.clash{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:14px;}
+.clash-side{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.clash-side span{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.clash-card{width:70px;height:100px;border-radius:10px;overflow:hidden;border:2px solid #e0e0ec;}
+.clash-card svg{width:100%;height:100%;}
+.clash-vs{font-size:20px;font-weight:900;color:#ccc;}
+.result-lbl{font-size:22px;font-weight:700;margin-bottom:4px;font-family:'Cinzel',serif;}
+.result-lbl.win{color:#228B22;}
+.result-lbl.lose{color:#cc3333;}
+.result-lbl.draw{color:#888;}
+.result-lbl.fold{color:#228B22;}
+.result-detail{font-size:13px;color:var(--text3);}
+
+/* SWITCH GRID */
+.switch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.sw-opt{
+  background:#f7f7f9;border:1.5px solid #e0e0ec;border-radius:var(--radius);
+  padding:10px 6px;text-align:center;cursor:pointer;transition:all .12s;
+}
+.sw-opt:hover{border-color:#bbb;background:#fff;}
+.sw-opt.cur.fire{border:2px solid var(--fireBorder);background:var(--fireBg);}
+.sw-opt.cur.water{border:2px solid var(--waterBorder);background:var(--waterBg);}
+.sw-opt.cur.grass{border:2px solid var(--grassBorder);background:var(--grassBg);}
+.sw-opt.pick.fire{border:2px solid #FF4500;background:var(--fireBg);}
+.sw-opt.pick.water{border:2px solid #0077CC;background:var(--waterBg);}
+.sw-opt.pick.grass{border:2px solid #228B22;background:var(--grassBg);}
+.sw-opt.dead{opacity:.3;pointer-events:none;}
+.sw-opt h4{font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.sw-opt .sw-rem{font-size:10px;color:var(--text3);}
+
+/* HISTORY */
+.hist-wrap{max-height:160px;overflow-y:auto;border:1px solid #e0e0ec;border-radius:var(--radius);margin-bottom:14px;background:#fff;}
+.hist-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid #f0f0f4;font-size:12px;color:var(--text);}
+.hist-row:last-child{border-bottom:none;}
+.badge{display:inline-block;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.05em;}
+.badge.win{background:#e8f5e0;color:#2a6e10;}
+.badge.lose{background:#fde8e8;color:#aa2222;}
+.badge.draw{background:#f5f5e0;color:#666622;}
+.badge.fold{background:#f0f0f0;color:#888;}
+
+/* BUTTONS */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:10px 24px;border-radius:var(--radius);border:1.5px solid #ccc;
+  font-size:14px;font-weight:700;cursor:pointer;
+  background:#fff;color:var(--text);
+  transition:all .12s;font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  letter-spacing:.03em;
+}
+.btn:hover{background:#f5f5f5;border-color:#aaa;}
+.btn:disabled{opacity:.35;cursor:default;}
+.btn-gold{background:var(--gold2);color:#fff;border-color:var(--gold2);}
+.btn-gold:hover{background:#774400;border-color:#774400;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* FINAL */
+.winner-banner{
+  text-align:center;padding:28px;
+  background:#fff;border:1px solid #e0e0ec;border-radius:var(--radius-lg);
+  margin-bottom:14px;
+}
+.winner-banner .big{font-size:30px;font-weight:900;font-family:'Cinzel',serif;}
+.winner-banner .big.win{color:#228B22;}
+.winner-banner .big.lose{color:#cc3333;}
+.winner-banner .big.draw{color:#888;}
+.final-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.final-stat{background:#fff;border:1px solid #e0e0ec;border-radius:var(--radius-lg);padding:14px;text-align:center;}
+.final-stat .num{font-size:28px;font-weight:700;color:var(--gold2);}
+.final-stat .lbl{font-size:11px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:.05em;}
+
+/* CUR SET INFO */
+.cur-set-bar{
+  font-size:13px;font-weight:700;padding:8px 14px;border-radius:var(--radius);
+  margin-bottom:14px;display:flex;align-items:center;gap:8px;
+}
+.cur-set-bar.fire{background:var(--fireBg);border:1px solid var(--fireBorder);color:#cc3300;}
+.cur-set-bar.water{background:var(--waterBg);border:1px solid var(--waterBorder);color:#0055aa;}
+.cur-set-bar.grass{background:var(--grassBg);border:1px solid var(--grassBorder);color:#1a6e1a;}
+
+/* AFFINITY HINT */
+.affinity{display:flex;gap:8px;justify-content:center;margin-bottom:20px;flex-wrap:wrap;}
+.aff-chip{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:700;}
+.aff-chip.fire{background:var(--fireBg);color:#cc3300;border:1px solid var(--fireBorder);}
+.aff-chip.water{background:var(--waterBg);color:#0055aa;border:1px solid var(--waterBorder);}
+.aff-chip.grass{background:var(--grassBg);color:#1a6e1a;border:1px solid var(--grassBorder);}
+
+.rules-list{font-size:12px;color:var(--text3);line-height:2;list-style:none;}
+.rules-list li::before{content:'·  ';}
+
+@keyframes cardPop{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
+.card-pop{animation:cardPop .25s ease-out;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SETUP -->
+<div id="screen-setup" class="screen active">
+  <div class="title-screen">
+    <div class="game-title">Tricle</div>
+    <div class="game-sub">Three elements. One cycle.</div>
+    <div style="display:flex;justify-content:center;margin-bottom:24px;">
+      <svg viewBox="0 0 120 110" width="120" height="110">
+        <polygon points="60,8 112,98 8,98" fill="none" stroke="#ddd" stroke-width="1.5" stroke-linejoin="round"/>
+        <circle cx="60" cy="18" r="16" fill="#1a0800" stroke="#FF6B1A" stroke-width="2"/>
+        <text x="60" y="23" text-anchor="middle" font-size="16">🔥</text>
+        <circle cx="18" cy="90" r="16" fill="#001833" stroke="#0099EE" stroke-width="2"/>
+        <text x="18" y="95" text-anchor="middle" font-size="16">💧</text>
+        <circle cx="102" cy="90" r="16" fill="#011200" stroke="#44AA44" stroke-width="2"/>
+        <text x="102" y="95" text-anchor="middle" font-size="16">🌿</text>
+        <path d="M44 26 Q18 44 22 72" fill="none" stroke="#0099EE" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#arr2)"/>
+        <path d="M34 96 Q60 108 86 96" fill="none" stroke="#44AA44" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#arr3)"/>
+        <path d="M98 72 Q102 44 76 26" fill="none" stroke="#FF6B1A" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#arr1)"/>
+        <defs>
+          <marker id="arr1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#FF6B1A" stroke-width="1.5" stroke-linecap="round"/></marker>
+          <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#0099EE" stroke-width="1.5" stroke-linecap="round"/></marker>
+          <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#44AA44" stroke-width="1.5" stroke-linecap="round"/></marker>
+        </defs>
+      </svg>
+    </div>
+  <div class="affinity">
+    <span class="aff-chip fire">🔥 불 &gt; 💧 물</span>
+    <span class="aff-chip water">💧 물 &gt; 🌿 풀</span>
+    <span class="aff-chip grass">🌿 풀 &gt; 🔥 불</span>
+  </div>
+
+  <!-- 상성 수정: 불>풀, 물>불, 풀>물 -->
+  <div class="panel">
+    <div class="panel-title">시작 세트 선택</div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:14px;">상대방은 내 구성을 모릅니다. 매 라운드 후 세트 교체 가능.</p>
+    <div class="set-grid">
+      <div class="set-opt fire" onclick="selectSet(0)">
+        <h3>🔥 세트 1</h3>
+        <div class="card-svg-wrap"><svg viewBox="0 0 60 40" width="60" height="40"><rect width="60" height="40" rx="4" fill="#1a0800"/><ellipse cx="30" cy="26" rx="14" ry="13" fill="#FF4500"/><ellipse cx="30" cy="22" rx="10" ry="10" fill="#FF7A00"/><ellipse cx="30" cy="18" rx="6" ry="7" fill="#FFE566"/><path d="M30 10 Q26 18 30 20 Q34 18 30 10Z" fill="#fff"/></svg></div>
+        <div class="comp" style="color:var(--fire2);">불 3 · 물 1 · 풀 1</div>
+      </div>
+      <div class="set-opt water" onclick="selectSet(1)">
+        <h3>💧 세트 2</h3>
+        <div class="card-svg-wrap"><svg viewBox="0 0 60 40" width="60" height="40"><rect width="60" height="40" rx="4" fill="#00101e"/><path d="M30 8 Q40 20 40 28 Q40 36 30 36 Q20 36 20 28 Q20 20 30 8Z" fill="#0088DD"/><path d="M30 14 Q37 23 37 28 Q37 34 30 34 Q23 34 23 28 Q23 23 30 14Z" fill="#33BBFF"/><ellipse cx="26" cy="22" rx="3" ry="5" fill="#99DDFF" opacity=".5"/></svg></div>
+        <div class="comp" style="color:var(--water2);">불 1 · 물 3 · 풀 1</div>
+      </div>
+      <div class="set-opt grass" onclick="selectSet(2)">
+        <h3>🌿 세트 3</h3>
+        <div class="card-svg-wrap"><svg viewBox="0 0 60 40" width="60" height="40"><rect width="60" height="40" rx="4" fill="#011200"/><rect x="28" y="20" width="4" height="16" rx="2" fill="#228B22"/><path d="M30 25 Q14 18 12 6 Q24 14 30 22Z" fill="#44CC44"/><path d="M30 25 Q46 18 48 6 Q36 14 30 22Z" fill="#44CC44"/><ellipse cx="30" cy="5" rx="4" ry="6" fill="#88EE44"/></svg></div>
+        <div class="comp" style="color:var(--grass2);">불 1 · 물 1 · 풀 3</div>
+      </div>
+    </div>
+    <button class="btn btn-gold" id="start-btn" onclick="startGame()" disabled>게임 시작</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">규칙</div>
+    <ul class="rules-list">
+      <li>각 세트는 카드 5장, 원소 비율이 다름</li>
+      <li>승부 시 양쪽 카드 소모 · 무승부 시 카드 + 팟 반환</li>
+      <li>선베팅 → AI 콜/폴드/레이즈 → 콜/폴드/레이즈 → 카드 대결</li>
+      <li>레이즈는 라운드당 각 1회 · 최소 현재 베팅의 2배</li>
+      <li>폴드 시 넣은 금액 전액 몰수 · 폴드는 3회만 가능</li>
+      <li>15라운드 후 포인트 많은 쪽 승리</li>
+    </ul>
+  </div>
+</div>
+
+<!-- BET -->
+<div id="screen-bet" class="screen">
+  <div class="status-bar">
+    <div class="stat"><label>내 포인트</label><div class="val" id="b-my-pt"></div></div>
+    <div class="vs-box"><div class="lbl">라운드</div><div class="rnd" id="b-rnd"></div></div>
+    <div class="stat right"><label>AI 포인트</label><div class="val" id="b-ai-pt"></div></div>
+  </div>
+  <div class="fold-bar">
+    <span>폴드</span>
+    <div class="fold-pips" id="b-my-pips"></div><span>내</span>
+    <div class="fold-sep"></div>
+    <div class="fold-pips" id="b-ai-pips"></div><span>AI</span>
+    <div class="fold-sep"></div>
+    <span style="margin-left:auto;font-size:11px;">팟 <strong id="b-pot">0</strong>pt</span>
+  </div>
+  <div class="cur-set-bar fire" id="b-cur-set"></div>
+
+  <!-- 자연재해 배너 -->
+  <div id="b-draw-mult" style="display:none;background:#fff3cd;border:1.5px solid #f0a500;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:13px;color:#7a4f00;font-weight:700;"></div>
+
+  <!-- 1단계: 내 최초 베팅 -->
+  <div class="bet-area" id="bet-p1">
+    <div class="panel-title">베팅 단계 1 — 선베팅</div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:10px;">베팅 금액을 정하세요. AI가 콜 / 폴드 / 레이즈합니다.</p>
+    <div class="chip-row">
+      <span class="chip" onclick="setBet(10)">10</span>
+      <span class="chip" onclick="setBet(30)">30</span>
+      <span class="chip" onclick="setBet(50)">50</span>
+      <span class="chip" onclick="setBet(100)">100</span>
+    </div>
+    <div class="bet-row">
+      <label>직접 입력</label>
+      <input type="number" class="bet-input" id="bet-val" value="10" min="1" oninput="syncChips(this.value)">
+      <button class="btn btn-gold" onclick="confirmBet()">베팅 확정</button>
+    </div>
+  </div>
+
+  <!-- 2단계: AI 반응 후 내 선택 (콜/폴드/레이즈) -->
+  <div class="bet-area" id="bet-p2" style="display:none;">
+    <div class="panel-title" id="bet-p2-title">베팅 단계 2 — AI 반응</div>
+    <div class="ai-resp" id="ai-resp" style="margin-bottom:12px;"></div>
+    <div id="player-action-area">
+      <div class="chip-row" id="raise-chips" style="display:none;"></div>
+      <div class="btn-row" id="player-action-btns"></div>
+    </div>
+  </div>
+
+  <!-- 카드 선택 -->
+  <div id="card-area" style="display:none;">
+    <div class="panel-title" style="margin-bottom:6px;">카드 선택</div>
+    <div class="hand-row" id="b-my-hand"></div>
+    <button class="btn btn-gold" id="play-btn" onclick="playCard()" disabled>카드 내기</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="screen-result" class="screen">
+  <div class="status-bar">
+    <div class="stat"><label>내 포인트</label><div class="val" id="r-my-pt"></div></div>
+    <div class="vs-box"><div class="lbl">라운드</div><div class="rnd" id="r-rnd"></div></div>
+    <div class="stat right"><label>AI 포인트</label><div class="val" id="r-ai-pt"></div></div>
+  </div>
+  <div class="result-box">
+    <div class="clash">
+      <div class="clash-side"><span>나</span><div class="clash-card" id="r-my-card"></div></div>
+      <div class="clash-vs">VS</div>
+      <div class="clash-side"><span>AI</span><div class="clash-card" id="r-ai-card"></div></div>
+    </div>
+    <div class="result-lbl" id="r-label"></div>
+    <div class="result-detail" id="r-detail"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div><div class="panel-title">내 남은 카드</div><div class="hand-row" id="r-my-hand" style="margin-bottom:0;"></div></div>
+    <div><div class="panel-title">AI 남은 카드</div><div style="display:flex;gap:6px;flex-wrap:wrap;" id="r-ai-hand"></div></div>
+  </div>
+  <div class="panel-title">기록</div>
+  <div class="hist-wrap" id="r-hist"></div>
+  <br>
+  <button class="btn btn-gold" id="next-btn" onclick="goToSwitch()">다음 →</button>
+</div>
+
+<!-- SWITCH -->
+<div id="screen-switch" class="screen">
+  <div class="status-bar">
+    <div class="stat"><label>내 포인트</label><div class="val" id="s-my-pt"></div></div>
+    <div class="vs-box"><div class="lbl">라운드</div><div class="rnd" id="s-rnd"></div></div>
+    <div class="stat right"><label>AI 포인트</label><div class="val" id="s-ai-pt"></div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">내 세트 교체</div>
+    <p class="ai-resp" style="margin-bottom:12px;" id="s-cur-info"></p>
+    <div class="switch-grid" id="s-grid"></div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="confirmSwitch()">확정</button>
+      <span style="font-size:12px;color:var(--text3);align-self:center;" id="s-hint"></span>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:8px;">* 교체 시 이미 쓴 카드는 돌아오지 않아요.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-title">AI가 낸 카드 (공개 정보)</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;min-height:32px;" id="s-ai-played"></div>
+    <p style="font-size:11px;color:var(--text3);margin-top:8px;" id="s-ai-played-empty">아직 없음</p>
+  </div>
+  <div class="panel" id="s-hist-panel" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="panel-title" style="margin-bottom:0;">기록</div>
+      <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="$('s-hist-panel').style.display='none'">닫기</button>
+    </div>
+    <div class="hist-wrap" id="s-hist" style="margin-bottom:0;"></div>
+  </div>
+  <button class="btn" style="width:100%;margin-bottom:8px;" onclick="toggleSwitchHist()">기록 보기 / 숨기기</button>
+</div>
+
+<!-- FINAL -->
+<div id="screen-final" class="screen">
+  <div class="title-screen" style="padding-top:20px;">
+    <div class="game-title">Tricle</div>
+  </div>
+  <div class="winner-banner"><div class="big" id="f-winner"></div></div>
+  <div class="final-grid">
+    <div class="final-stat"><div class="num" id="f-my-pt"></div><div class="lbl">내 포인트</div></div>
+    <div class="final-stat"><div class="num" id="f-ai-pt"></div><div class="lbl">AI 포인트</div></div>
+    <div class="final-stat"><div class="num" id="f-wins"></div><div class="lbl">승리</div></div>
+    <div class="final-stat"><div class="num" id="f-losses"></div><div class="lbl">패배</div></div>
+  </div>
+  <div class="panel-title">전체 기록</div>
+  <div class="hist-wrap" id="f-hist"></div>
+  <br>
+  <button class="btn btn-gold" onclick="resetGame()">다시 하기</button>
+</div>
+
+</div>
+
+<script>
+// ── 원소 정의 ──────────────────────────────────────────────
+const ELEM = {
+  fire:  { name:'불', emoji:'🔥', cls:'fire',  bg:'#1a0800', border:'#FF6B1A', label:'#FF9E4A' },
+  water: { name:'물', emoji:'💧', cls:'water', bg:'#00101e', border:'#00AAFF', label:'#33BBFF' },
+  grass: { name:'풀', emoji:'🌿', cls:'grass', bg:'#011200', border:'#44CC44', label:'#66DD44' },
+};
+
+// 상성: 불>풀, 물>불, 풀>물
+const BEATS = { fire:'grass', water:'fire', grass:'water' };
+
+// 세트 구성
+const SETS = [
+  ['fire','fire','fire','water','grass'],
+  ['fire','water','water','water','grass'],
+  ['fire','water','grass','grass','grass'],
+];
+const SET_NAMES = ['세트 1 (🔥 多)','세트 2 (💧 多)','세트 3 (🌿 多)'];
+const MAX_FOLDS = 3;
+
+// 카드 SVG 생성
+function cardSVG(type, size=62) {
+  const e = ELEM[type];
+  if(type==='fire') return `<svg viewBox="0 0 62 90" xmlns="http://www.w3.org/2000/svg">
+    <rect width="62" height="90" rx="8" fill="#1a0800"/>
+    <rect x="3" y="3" width="56" height="84" rx="6" fill="none" stroke="#FF6B1A" stroke-width="1.5" stroke-dasharray="4 3" opacity=".6"/>
+    <ellipse cx="31" cy="60" rx="18" ry="20" fill="#FF4500"/>
+    <ellipse cx="31" cy="54" rx="13" ry="16" fill="#FF7A00"/>
+    <ellipse cx="31" cy="48" rx="8" ry="11" fill="#FFB300"/>
+    <ellipse cx="31" cy="44" rx="5" ry="7" fill="#FFE566"/>
+    <path d="M16 62 Q9 48 18 38 Q15 52 24 55Z" fill="#FF6B1A"/>
+    <path d="M46 62 Q53 48 44 38 Q47 52 38 55Z" fill="#FF6B1A"/>
+    <path d="M31 34 Q27 42 31 45 Q35 42 31 34Z" fill="#fff" opacity=".8"/>
+    <circle cx="20" cy="35" r="2" fill="#FFE566"/>
+    <circle cx="42" cy="32" r="1.5" fill="#FFB300"/>
+    <ellipse cx="31" cy="75" rx="15" ry="5" fill="#CC2200" opacity=".5"/>
+    <rect x="8" y="76" width="46" height="10" rx="4" fill="#FF4500"/>
+    <text x="31" y="85" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#FFE566" letter-spacing="1">불 FIRE</text>
+    <circle cx="10" cy="10" r="6" fill="#FF4500" stroke="#FF9E4A" stroke-width="1"/>
+    <text x="10" y="14" text-anchor="middle" font-family="sans-serif" font-size="7" font-weight="700" fill="#FFE566">F</text>
+  </svg>`;
+  if(type==='water') return `<svg viewBox="0 0 62 90" xmlns="http://www.w3.org/2000/svg">
+    <rect width="62" height="90" rx="8" fill="#001833"/>
+    <rect x="3" y="3" width="56" height="84" rx="6" fill="none" stroke="#00AAFF" stroke-width="1.5" stroke-dasharray="4 3" opacity=".6"/>
+    <path d="M31 22 Q46 42 46 56 Q46 72 31 74 Q16 72 16 56 Q16 42 31 22Z" fill="#0077CC"/>
+    <path d="M31 30 Q43 47 43 56 Q43 69 31 71 Q19 69 19 56 Q19 47 31 30Z" fill="#0099EE"/>
+    <path d="M31 40 Q40 52 40 56 Q40 66 31 68 Q22 66 22 56 Q22 52 31 40Z" fill="#33BBFF"/>
+    <ellipse cx="26" cy="48" rx="4" ry="7" fill="#99DDFF" opacity=".5" transform="rotate(-15,26,48)"/>
+    <ellipse cx="24" cy="46" rx="2" ry="3" fill="#fff" opacity=".4" transform="rotate(-15,24,46)"/>
+    <path d="M14 78 Q22 74 31 76 Q40 78 48 74" fill="none" stroke="#0099EE" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="14" cy="60" r="2.5" fill="none" stroke="#66CCFF" stroke-width="1.2"/>
+    <circle cx="48" cy="52" r="2" fill="none" stroke="#66CCFF" stroke-width="1.2"/>
+    <rect x="8" y="76" width="46" height="10" rx="4" fill="#0077CC"/>
+    <text x="31" y="85" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#CCF0FF" letter-spacing="1">물 WATER</text>
+    <circle cx="10" cy="10" r="6" fill="#0077CC" stroke="#66CCFF" stroke-width="1"/>
+    <text x="10" y="14" text-anchor="middle" font-family="sans-serif" font-size="7" font-weight="700" fill="#CCF0FF">W</text>
+  </svg>`;
+  return `<svg viewBox="0 0 62 90" xmlns="http://www.w3.org/2000/svg">
+    <rect width="62" height="90" rx="8" fill="#011200"/>
+    <rect x="3" y="3" width="56" height="84" rx="6" fill="none" stroke="#44CC44" stroke-width="1.5" stroke-dasharray="4 3" opacity=".6"/>
+    <ellipse cx="31" cy="72" rx="18" ry="5" fill="#1A4400" opacity=".8"/>
+    <rect x="28" y="42" width="6" height="30" rx="3" fill="#228B22"/>
+    <path d="M31 52 Q10 42 8 22 Q22 32 31 48Z" fill="#2DB82D"/>
+    <path d="M31 52 Q52 42 54 22 Q40 32 31 48Z" fill="#2DB82D"/>
+    <path d="M31 52 Q12 44 10 25 Q23 34 31 48Z" fill="#44CC44" opacity=".6"/>
+    <path d="M31 52 Q50 44 52 25 Q41 34 31 48Z" fill="#44CC44" opacity=".6"/>
+    <path d="M31 35 Q24 22 26 10 Q31 20 31 32Z" fill="#66DD44"/>
+    <path d="M31 35 Q38 22 36 10 Q31 20 31 32Z" fill="#66DD44"/>
+    <ellipse cx="31" cy="9" rx="4" ry="6" fill="#88EE44"/>
+    <path d="M29 58 Q16 52 14 40 Q24 46 29 55Z" fill="#228B22"/>
+    <path d="M33 58 Q46 52 48 40 Q38 46 33 55Z" fill="#228B22"/>
+    <circle cx="10" cy="30" r="1.5" fill="#AEFF66"/>
+    <circle cx="52" cy="26" r="1.5" fill="#AEFF66"/>
+    <circle cx="31" cy="3" r="2" fill="#CCFF88"/>
+    <rect x="8" y="76" width="46" height="10" rx="4" fill="#228B22"/>
+    <text x="31" y="85" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#CCFF88" letter-spacing="1">풀 GRASS</text>
+    <circle cx="10" cy="10" r="6" fill="#228B22" stroke="#88EE44" stroke-width="1"/>
+    <text x="10" y="14" text-anchor="middle" font-family="sans-serif" font-size="7" font-weight="700" fill="#CCFF88">G</text>
+  </svg>`;
+}
+
+function foldCardSVG() {
+  return `<svg viewBox="0 0 62 90" xmlns="http://www.w3.org/2000/svg">
+    <rect width="62" height="90" rx="8" fill="#13131a"/>
+    <rect x="3" y="3" width="56" height="84" rx="6" fill="none" stroke="#2a2a3a" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="31" y="52" text-anchor="middle" font-family="sans-serif" font-size="28">🤷</text>
+    <text x="31" y="72" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#555">FOLD</text>
+  </svg>`;
+}
+
+function backCardSVG() {
+  return `<svg viewBox="0 0 62 90" xmlns="http://www.w3.org/2000/svg">
+    <rect width="62" height="90" rx="8" fill="#13131a"/>
+    <rect x="3" y="3" width="56" height="84" rx="6" fill="none" stroke="#2a2a3a" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="31" y="52" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#2a2a3a">?</text>
+  </svg>`;
+}
+
+// ── 게임 상태 ──────────────────────────────────────────────
+let allMy, allAi, mySet, aiSet, myPt, aiPt, round, hist;
+let myFolds, aiFolds, mySel, pendMy, pendAi;
+// 베팅 상태
+let pot, myCommit, aiCommit;
+let raiseCount, myRaised, aiRaised;
+let betPhase;
+let drawMultiplier; // 무승부 연속 시 베팅 배수 (1→2→4→8...)
+
+function selectSet(i){
+  mySet=i;
+  document.querySelectorAll('.set-opt').forEach((c,j)=>{
+    c.classList.remove('selected');
+    if(j===i) c.classList.add('selected');
+  });
+  $('start-btn').disabled=false;
+}
+
+function startGame(){
+  allMy=SETS.map(s=>[...s]); allAi=SETS.map(s=>[...s]);
+  aiSet=Math.floor(Math.random()*3);
+  myPt=1000;aiPt=1000;round=0;hist=[];
+  myFolds=MAX_FOLDS;aiFolds=MAX_FOLDS;
+  drawMultiplier=1;
+  goToBet();
+}
+
+function goToBet(){
+  round++;mySel=null;
+  pot=0;myCommit=0;aiCommit=0;
+  raiseCount=0;myRaised=false;aiRaised=false;
+  betPhase='player_bet';
+  $('b-my-pt').textContent=myPt; $('b-ai-pt').textContent=aiPt;
+  $('b-rnd').textContent=round+'/15';
+  $('b-pot').textContent=0;
+  const csb=$('b-cur-set');
+  const e=ELEM[dominantElem(allMy[mySet])];
+  csb.className='cur-set-bar '+e.cls;
+  csb.textContent=SET_NAMES[mySet]+' — 남은 '+allMy[mySet].filter(c=>c!==null).length+'장';
+  renderPips('b-my-pips',myFolds); renderPips('b-ai-pips',aiFolds);
+  // 무승부 배수 표시
+  const dmEl=$('b-draw-mult');
+  if(drawMultiplier>1){
+    dmEl.style.display='';
+    dmEl.innerHTML=`⚡ 자연재해 발동! 이번 라운드 베팅 최소 <strong>${drawMultiplier}배</strong> 강제`;
+    $('bet-val').value=10*drawMultiplier;
+    syncChips(10*drawMultiplier);
+  } else {
+    dmEl.style.display='none';
+    $('bet-val').value=10; syncChips(10);
+  }
+  $('bet-p1').style.display=''; $('bet-p2').style.display='none'; $('card-area').style.display='none';
+  renderHand('b-my-hand',allMy[mySet],true);
+  $('play-btn').disabled=true;
+  showScreen('bet');
+}
+
+function dominantElem(hand){
+  const cnt={fire:0,water:0,grass:0};
+  hand.forEach(c=>{if(c) cnt[c]++;});
+  return Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+}
+
+function renderPips(id,left){
+  const el=$(id); el.innerHTML='';
+  for(let i=0;i<MAX_FOLDS;i++){
+    const d=document.createElement('div');
+    d.className='pip'+(i>=left?' used':'');
+    el.appendChild(d);
+  }
+}
+
+function setBet(v){$('bet-val').value=v;syncChips(v);}
+function syncChips(v){document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',parseInt(c.textContent)===parseInt(v)));}
+
+function updatePot(){$('b-pot').textContent=pot;}
+
+// ── 1단계: 플레이어 초기 베팅 ──
+function confirmBet(){
+  const val=parseInt($('bet-val').value)||10;
+  const minBet=10*drawMultiplier;
+  if(val<minBet){alert(`자연재해 발동! 최소 ${minBet}pt 이상 베팅해야 합니다.`);return;}
+  if(val>myPt){alert('포인트가 부족합니다');return;}
+  myCommit=val; pot+=val; myPt-=val;
+  updatePot(); $('b-my-pt').textContent=myPt;
+  $('bet-p1').style.display='none';
+  $('bet-p2').style.display='';
+  betPhase='ai_response';
+  aiRespondToBet();
+}
+
+// ── AI 반응 로직 ──
+function aiRespondToBet(){
+  const wp=estWinProb();
+  const callAmt=myCommit-aiCommit; // AI가 콜하려면 내야 할 금액
+  const canRaise=!aiRaised&&aiFolds>0;
+  const riskCall=callAmt/aiPt;
+
+  let decision;
+  if(aiFolds<=0){
+    // 폴드 불가 → 무조건 콜 or 레이즈
+    decision = (wp>0.65&&canRaise) ? 'raise' : 'call';
+  } else {
+    if(wp>0.7&&canRaise) decision='raise';
+    else if(wp>0.55||riskCall<0.15) decision='call';
+    else if(riskCall>0.3&&wp<0.45) decision='fold';
+    else decision=Math.random()<wp*1.2?'call':'fold';
+  }
+
+  const resp=$('ai-resp');
+  const pab=$('player-action-btns');
+  const rc=$('raise-chips');
+  pab.innerHTML=''; rc.style.display='none';
+
+  if(decision==='fold'){
+    aiFolds--;
+    aiCommit=0; // AI 폴드 → AI가 넣은 금액 0 (아직 안 넣었으니)
+    // 팟은 내 베팅만 있음 → 내가 전액 회수 + AI 페널티 없음 (AI는 넣은 게 없음)
+    myPt+=myCommit; pot=0; myCommit=0;
+    $('b-my-pt').textContent=myPt; updatePot();
+    renderPips('b-ai-pips',aiFolds);
+    resp.innerHTML=`<span style="color:#cc3333;font-weight:700;">AI 폴드!</span> — AI가 포기했습니다. 팟 회수 후 카드 대결은 없어요.<br><span style="font-size:11px;color:#888;">(AI 폴드 ${MAX_FOLDS-aiFolds}/${MAX_FOLDS}회 사용)</span>`;
+    $('player-action-area').style.display='none';
+    $('card-area').style.display='none';
+    betPhase='done';
+    // 폴드 결과 직접 처리
+    setTimeout(()=>resolveFold('ai'),400);
+
+  } else if(decision==='call'){
+    aiCommit=myCommit; pot+=callAmt; aiPt-=callAmt;
+    $('b-ai-pt').textContent=aiPt; updatePot();
+    resp.innerHTML=`<span style="color:#228B22;font-weight:700;">AI 콜</span> — ${callAmt}pt 매칭. 팟: <strong>${pot}pt</strong>`;
+    $('player-action-area').style.display='';
+    rc.style.display='none';
+    // 플레이어는 레이즈 가능하면 레이즈 버튼 제공, 아니면 바로 카드
+    if(!myRaised){
+      pab.innerHTML=`<button class="btn btn-gold" onclick="playerCallDone()">카드 내기</button>
+        <button class="btn" onclick="playerRaise()">레이즈 ↑</button>`;
+    } else {
+      pab.innerHTML=`<button class="btn btn-gold" onclick="playerCallDone()">카드 내기</button>`;
+    }
+    betPhase='player_response';
+
+  } else { // raise
+    const raiseAmt=myCommit*2; // AI가 2배로 레이즈
+    const actualRaise=Math.min(raiseAmt, aiPt);
+    aiCommit=actualRaise; aiRaised=true;
+    pot+=actualRaise; aiPt-=actualRaise;
+    $('b-ai-pt').textContent=aiPt; updatePot();
+    resp.innerHTML=`<span style="color:#cc7700;font-weight:700;">AI 레이즈!</span> — ${actualRaise}pt로 올렸습니다. 팟: <strong>${pot}pt</strong><br><span style="font-size:11px;color:#888;">콜하려면 ${actualRaise-myCommit}pt 추가 필요</span>`;
+    $('player-action-area').style.display='';
+    rc.style.display='none';
+    const needMore=actualRaise-myCommit;
+    pab.innerHTML=`
+      <button class="btn btn-gold" onclick="playerCall(${needMore})">콜 (+${needMore}pt)</button>
+      <button class="btn" style="color:#cc3333;border-color:#cc3333;" onclick="playerFold()">폴드 (${myCommit}pt 손실)</button>`;
+    betPhase='player_response';
+  }
+}
+
+// ── 플레이어 레이즈 ──
+function playerRaise(){
+  const minRaise=aiCommit*2;
+  const resp=$('ai-resp');
+  const pab=$('player-action-btns');
+  const rc=$('raise-chips');
+  resp.innerHTML+='<br><span style="font-size:12px;color:#996600;font-weight:700;">레이즈 금액 선택</span>';
+  rc.style.display='flex';
+  rc.innerHTML='';
+  [minRaise, minRaise*2, Math.min(myPt+myCommit, aiPt+aiCommit)].filter((v,i,a)=>a.indexOf(v)===i&&v<=myPt+myCommit).forEach(v=>{
+    const extra=v-myCommit;
+    if(extra<=0||extra>myPt) return;
+    const chip=document.createElement('span');
+    chip.className='chip';
+    chip.textContent=v+'pt';
+    chip.onclick=()=>confirmPlayerRaise(v);
+    rc.appendChild(chip);
+  });
+  pab.innerHTML=`<button class="btn" onclick="cancelRaise()">취소</button>`;
+}
+
+function cancelRaise(){
+  $('raise-chips').style.display='none';
+  $('player-action-btns').innerHTML=`<button class="btn btn-gold" onclick="playerCallDone()">카드 내기</button>
+    <button class="btn" onclick="playerRaise()">레이즈 ↑</button>`;
+}
+
+function confirmPlayerRaise(total){
+  const extra=total-myCommit;
+  myCommit=total; myRaised=true;
+  pot+=extra; myPt-=extra;
+  $('b-my-pt').textContent=myPt; updatePot();
+  $('raise-chips').style.display='none';
+  $('player-action-area').style.display='';
+  betPhase='ai_response2';
+  aiRespondToRaise(total);
+}
+
+// ── AI가 플레이어 레이즈에 반응 ──
+function aiRespondToRaise(playerTotal){
+  const wp=estWinProb();
+  const callAmt=playerTotal-aiCommit;
+  const riskCall=callAmt/aiPt;
+  let decision;
+  if(aiFolds<=0) decision='call';
+  else if(wp>0.6&&riskCall<0.4) decision='call';
+  else if(riskCall>0.35&&wp<0.45) decision='fold';
+  else decision=Math.random()<wp*1.3?'call':'fold';
+
+  const resp=$('ai-resp');
+  const pab=$('player-action-btns');
+  pab.innerHTML='';
+
+  if(decision==='fold'){
+    aiFolds--;
+    renderPips('b-ai-pips',aiFolds);
+    // AI가 이미 넣은 aiCommit은 팟에 남음
+    resp.innerHTML+=`<br><span style="color:#cc3333;font-weight:700;">AI 폴드!</span> — AI가 레이즈를 포기. AI ${aiCommit}pt 손실. <span style="font-size:11px;color:#888;">(AI 폴드 ${MAX_FOLDS-aiFolds}/${MAX_FOLDS})</span>`;
+    betPhase='done';
+    setTimeout(()=>resolveFold('ai_after_raise'),400);
+  } else {
+    aiCommit=playerTotal; pot+=callAmt; aiPt-=callAmt;
+    $('b-ai-pt').textContent=aiPt; updatePot();
+    resp.innerHTML+=`<br><span style="color:#228B22;font-weight:700;">AI 콜</span> — ${callAmt}pt 추가. 팟: <strong>${pot}pt</strong>`;
+    pab.innerHTML=`<button class="btn btn-gold" onclick="playerCallDone()">카드 내기</button>`;
+    betPhase='player_response';
+  }
+}
+
+// ── 플레이어 콜 (AI 레이즈 후) ──
+function playerCall(extra){
+  if(extra>myPt){alert('포인트가 부족합니다');return;}
+  myCommit+=extra; myPt-=extra; pot+=extra;
+  $('b-my-pt').textContent=myPt; updatePot();
+  $('player-action-area').style.display='none';
+  $('card-area').style.display='';
+  renderHand('b-my-hand',allMy[mySet],true);
+  $('play-btn').disabled=true;
+}
+
+// ── 플레이어 폴드 ──
+function playerFold(){
+  if(myFolds<=0){alert('폴드 횟수를 모두 사용했습니다!');return;}
+  myFolds--;
+  renderPips('b-my-pips',myFolds);
+  betPhase='done';
+  resolveFold('player');
+}
+
+// ── 플레이어 콜 완료 → 카드 내기 ──
+function playerCallDone(){
+  $('player-action-area').style.display='none';
+  $('card-area').style.display='';
+  renderHand('b-my-hand',allMy[mySet],true);
+  $('play-btn').disabled=true;
+}
+
+// ── 폴드 결과 처리 ──
+function resolveFold(who){
+  // who: 'ai' = AI 폴드 (팟 내 것만), 'ai_after_raise' = AI가 레이즈 후 폴드, 'player' = 플레이어 폴드
+  let ptChange=0, rLabel='', rDetail='', outcome='fold';
+  if(who==='ai'||who==='ai_after_raise'){
+    ptChange=pot; myPt+=pot;
+    rLabel='AI 폴드 — 승리!';
+    rDetail=`팟 ${pot}pt 획득`;
+    pot=0; drawMultiplier=1;
+    outcome='fold_win';
+  } else {
+    ptChange=myCommit; aiPt+=pot;
+    rLabel='폴드 — 패배';
+    rDetail=`${myCommit}pt 손실`;
+    pot=0; drawMultiplier=1;
+    outcome='fold_lose';
+  }
+  $('b-my-pt').textContent=myPt; $('b-ai-pt').textContent=aiPt; updatePot();
+  hist.push({round,mySet,aiSet,myCard:null,aiCard:null,outcome,bet:myCommit+aiCommit,ptChange,myPt,aiPt,foldBy:who});
+  pendAi=aiDecideSwitch();
+  showResultFold(who, rLabel, rDetail);
+}
+
+function showResultFold(who, rLabel, rDetail){
+  $('r-my-pt').textContent=myPt; $('r-ai-pt').textContent=aiPt; $('r-rnd').textContent=round+'/15';
+  $('r-my-card').innerHTML=who==='player'?foldCardSVG():`<div style="width:70px;height:100px;border-radius:10px;background:#f0f0f4;border:2px solid #e0e0ec;display:flex;align-items:center;justify-content:center;font-size:28px;">🤔</div>`;
+  $('r-ai-card').innerHTML=who!=='player'?foldCardSVG():`<div style="width:70px;height:100px;border-radius:10px;background:#f0f0f4;border:2px solid #e0e0ec;display:flex;align-items:center;justify-content:center;font-size:28px;">😏</div>`;
+  const rl=$('r-label'); rl.textContent=rLabel;
+  rl.className='result-lbl '+(who!=='player'?'win':'lose');
+  $('r-detail').textContent=rDetail;
+  renderHandStatic('r-my-hand',allMy[mySet],false);
+  renderAiHand('r-ai-hand',allAi[aiSet]);
+  renderHist('r-hist');
+  const myTotal=allMy.flat().filter(c=>c!==null).length;
+  const aiTotal=allAi.flat().filter(c=>c!==null).length;
+  const isEnd=myTotal===0||aiTotal===0||round>=15||myPt<=0||aiPt<=0;
+  $('next-btn').textContent=isEnd?'결과 보기':'다음 →';
+  $('next-btn').onclick=isEnd?showFinal:goToSwitch;
+  showScreen('result');
+}
+
+function estWinProb(){
+  const mr=allMy[mySet].filter(c=>c!==null), ar=allAi[aiSet].filter(c=>c!==null);
+  let w=0,t=0;
+  for(const mc of mr) for(const ac of ar){t++;if(BEATS[ac]===mc) w++;}
+  return t>0?w/t:0.5;
+}
+
+function aiPick(){
+  const avail=allAi[aiSet].filter(c=>c!==null);
+  if(!avail.length) return null;
+  const mr=allMy[mySet].filter(c=>c!==null);
+  let best=null,bestS=-Infinity;
+  for(const ac of avail){
+    let s=0;
+    for(const mc of mr){if(BEATS[ac]===mc) s+=2;else if(BEATS[mc]===ac) s-=2;}
+    s+=Math.random()*0.5;
+    if(s>bestS){bestS=s;best=ac;}
+  }
+  return best;
+}
+
+function renderHand(id,hand,interactive){
+  const el=$(id); el.innerHTML='';
+  hand.forEach((c,i)=>{
+    const d=document.createElement('div');
+    const cls=c?ELEM[c].cls:'fire';
+    d.className='hcard '+(c?cls:'')+(c===null?' used':'')+(interactive&&i===mySel?' sel '+cls:'');
+    d.innerHTML=c?cardSVG(c):'<div style="width:100%;height:100%;background:#eee;border-radius:8px;"></div>';
+    if(interactive&&c!==null) d.onclick=()=>{mySel=i;renderHand(id,hand,true);$('play-btn').disabled=false;};
+    el.appendChild(d);
+  });
+}
+
+function playCard(){
+  if(mySel===null) return;
+  const myCard=allMy[mySet][mySel];
+  const aiCard=aiPick();
+  const aiIdx=allAi[aiSet].indexOf(aiCard);
+  let outcome;
+  if(myCard===aiCard) outcome='draw';
+  else if(BEATS[myCard]===aiCard) outcome='win';
+  else outcome='lose';
+  let rLabel='',rDetail='';
+  if(outcome==='draw'){
+    // 팟 반환 + 다음 라운드 배수 2배
+    myPt+=myCommit; aiPt+=aiCommit; pot=0;
+    drawMultiplier*=2;
+    rLabel='무승부 — 자연재해!'; rDetail=`팟 반환 · 다음 라운드 베팅 최소 ${drawMultiplier}배 강제`;
+  } else if(outcome==='win'){
+    allMy[mySet][mySel]=null; allAi[aiSet][aiIdx]=null;
+    myPt+=pot; pot=0;
+    drawMultiplier=1;
+    rLabel='승리!'; rDetail=`팟 전액 획득`;
+  } else {
+    allMy[mySet][mySel]=null; allAi[aiSet][aiIdx]=null;
+    aiPt+=pot; pot=0;
+    drawMultiplier=1;
+    rLabel='패배'; rDetail='팟 전액 AI 획득';
+  }
+  const ptChange=outcome==='win'?myCommit+aiCommit:outcome==='draw'?0:-(myCommit);
+  hist.push({round,mySet,aiSet,myCard,aiCard,outcome,bet:myCommit+aiCommit,ptChange,myPt,aiPt});
+  pendAi=aiDecideSwitch();
+  $('r-my-pt').textContent=myPt; $('r-ai-pt').textContent=aiPt; $('r-rnd').textContent=round+'/15';
+  $('r-my-card').innerHTML=cardSVG(myCard);
+  $('r-ai-card').innerHTML=cardSVG(aiCard);
+  const rl=$('r-label');
+  rl.textContent=rLabel;
+  rl.className='result-lbl '+(outcome==='win'?'win':outcome==='lose'?'lose':'draw');
+  $('r-detail').textContent=rDetail;
+  renderHandStatic('r-my-hand',allMy[mySet],false);
+  renderAiHand('r-ai-hand',allAi[aiSet]);
+  renderHist('r-hist');
+  const myTotal=allMy.flat().filter(c=>c!==null).length;
+  const aiTotal=allAi.flat().filter(c=>c!==null).length;
+  const isEnd=myTotal===0||aiTotal===0||round>=15||myPt<=0||aiPt<=0;
+  $('next-btn').textContent=isEnd?'결과 보기':'다음 →';
+  $('next-btn').onclick=isEnd?showFinal:goToSwitch;
+  showScreen('result');
+}
+
+function aiDecideSwitch(){
+  const wp=estWinProb();
+  if(wp<0.45){
+    let best=aiSet,bestWp=-1;
+    for(let s=0;s<3;s++){
+      if(allAi[s].filter(c=>c!==null).length===0) continue;
+      const ar=allAi[s].filter(c=>c!==null),mr=allMy[mySet].filter(c=>c!==null);
+      let w=0,t=0;
+      for(const ac of ar) for(const mc of mr){t++;if(BEATS[ac]===mc) w++;}
+      const p=t>0?w/t:0;
+      if(p>bestWp){bestWp=p;best=s;}
+    }
+    return best;
+  }
+  return aiSet;
+}
+
+function goToSwitch(){
+  pendMy=mySet;
+  $('s-my-pt').textContent=myPt; $('s-ai-pt').textContent=aiPt; $('s-rnd').textContent=round+'/15';
+  $('s-cur-info').textContent='현재 세트: '+SET_NAMES[mySet]+' — 남은 '+allMy[mySet].filter(c=>c!==null).length+'장';
+  renderSwitchGrid();
+  renderAiPlayed();
+  $('s-hist-panel').style.display='none';
+  showScreen('switch');
+}
+
+function renderAiPlayed(){
+  const played=hist.filter(h=>h.aiCard!==null).map(h=>h.aiCard);
+  const el=$('s-ai-played');
+  const empty=$('s-ai-played-empty');
+  el.innerHTML='';
+  if(played.length===0){empty.style.display='';return;}
+  empty.style.display='none';
+  // 원소별 카운트
+  const cnt={fire:0,water:0,grass:0};
+  played.forEach(c=>cnt[c]++);
+  ['fire','water','grass'].forEach(type=>{
+    if(cnt[type]===0) return;
+    for(let i=0;i<cnt[type];i++){
+      const d=document.createElement('div');
+      d.style.cssText='width:36px;height:52px;border-radius:6px;overflow:hidden;border:1.5px solid #e0e0ec;';
+      d.innerHTML=cardSVG(type);
+      el.appendChild(d);
+    }
+  });
+}
+
+function toggleSwitchHist(){
+  const p=$('s-hist-panel');
+  if(p.style.display==='none'){
+    renderHist('s-hist');
+    p.style.display='';
+  } else {
+    p.style.display='none';
+  }
+}
+
+function renderSwitchGrid(){
+  const g=$('s-grid'); g.innerHTML='';
+  for(let i=0;i<3;i++){
+    const rem=allMy[i].filter(c=>c!==null).length;
+    const dom=dominantElem(allMy[i]);
+    const d=document.createElement('div');
+    let cls='sw-opt '+ELEM[dom].cls;
+    if(rem===0) cls+=' dead';
+    else if(i===pendMy) cls+=' pick '+ELEM[dom].cls;
+    else if(i===mySet) cls+=' cur '+ELEM[dom].cls;
+    d.className=cls;
+    const counts={fire:0,water:0,grass:0};
+    allMy[i].forEach(c=>{if(c) counts[c]++;});
+    d.innerHTML=`<h4>${['🔥','💧','🌿'][i]} 세트 ${i+1}</h4><div class="sw-rem">${rem===0?'카드 없음':rem+'장'+(i===mySet?' (현재)':'')}</div>`;
+    if(rem>0) d.onclick=()=>{pendMy=i;renderSwitchGrid();};
+    g.appendChild(d);
+  }
+  $('s-hint').textContent=pendMy===mySet?'현재 유지':'→ 세트 '+(pendMy+1)+'로 교체';
+}
+
+function confirmSwitch(){mySet=pendMy;aiSet=pendAi;goToBet();}
+
+function renderHandStatic(id,hand){
+  const el=$(id); el.innerHTML='';
+  hand.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='hcard'+(c===null?' used':'');
+    d.style.cursor='default'; d.style.transform='none';
+    d.innerHTML=c?cardSVG(c):'<div style="width:100%;height:100%;background:#eee;border-radius:8px;"></div>';
+    el.appendChild(d);
+  });
+}
+
+function renderAiHand(id,hand){
+  const el=$(id); el.innerHTML='';
+  hand.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='ai-hcard'+(c===null?' used':'');
+    d.innerHTML=c?backCardSVG():'<div style="width:100%;height:100%;"></div>';
+    el.appendChild(d);
+  });
+}
+
+function renderHist(id){
+  const el=$(id); el.innerHTML='';
+  [...hist].reverse().forEach(h=>{
+    const row=document.createElement('div'); row.className='hist-row';
+    const isWin=h.outcome==='win'||h.outcome==='fold_win';
+    const isLose=h.outcome==='lose'||h.outcome==='fold_lose';
+    const outLabel=h.outcome==='win'?'승':h.outcome==='lose'?'패':h.outcome==='fold_win'?'폴드승':h.outcome==='fold_lose'?'폴드패':'무';
+    const outCls=isWin?'win':isLose?'lose':h.outcome==='fold_win'?'win':h.outcome==='fold_lose'?'lose':'draw';
+    const badge=`<span class="badge ${outCls}">${outLabel}</span>`;
+    const myE=h.myCard?ELEM[h.myCard]:null;
+    const aiE=h.aiCard?ELEM[h.aiCard]:null;
+    const cards=myE?`${myE.emoji} vs ${aiE?aiE.emoji:'🤷'}`:(isWin?'🤷 폴드':'🏳️ 폴드');
+    const pts=h.outcome==='draw'?'±0':isWin?`+${Math.abs(h.ptChange)}`:isLose?`-${Math.abs(h.ptChange)}`:`±0`;
+    const color=isWin?'#228B22':isLose?'#cc3333':'#888';
+    row.innerHTML=`<span style="color:var(--text3);min-width:28px;">R${h.round}</span>${badge}<span style="font-size:10px;color:var(--text3);">S${h.mySet+1}</span><span>${cards}</span><span style="font-size:10px;color:var(--text3);">팟${h.bet}pt</span><span style="margin-left:auto;font-weight:700;color:${color}">${pts}pt</span>`;
+    el.appendChild(row);
+  });
+}
+
+function showFinal(){
+  const wins=hist.filter(h=>h.outcome==='win'||h.outcome==='fold_win').length;
+  const losses=hist.filter(h=>h.outcome==='lose'||h.outcome==='fold_lose').length;
+  const draws=hist.filter(h=>h.outcome==='draw').length;
+  $('f-my-pt').textContent=myPt; $('f-ai-pt').textContent=aiPt;
+  $('f-wins').textContent=wins+'승'; $('f-losses').textContent=losses+'패';
+  const w=$('f-winner');
+  if(myPt>aiPt){w.textContent='Victory!';w.className='big win';}
+  else if(myPt<aiPt){w.textContent='Defeat...';w.className='big lose';}
+  else{w.textContent='Draw';w.className='big draw';}
+  renderHist('f-hist');
+  showScreen('final');
+}
+
+function resetGame(){
+  mySet=null;
+  document.querySelectorAll('.set-opt').forEach(c=>c.classList.remove('selected'));
+  $('start-btn').disabled=true;
+  showScreen('setup');
+}
+
+function showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('screen-'+n).classList.add('active');}
+function $(id){return document.getElementById(id);}
+</script>
+</body>
+</html>
